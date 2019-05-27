@@ -40,11 +40,11 @@
   :prefix "geros-"
   :group 'lisp)
 
-(defcustom geros-eval-result-prefix "=> "
-  "The prefix displayed in the minibuffer before a result value."
-  :group 'geros
-  :type 'string
-  :package-version '(geros "0.1.0"))
+;; (defcustom geros-eval-result-prefix "=> "
+;;   "The prefix displayed in the minibuffer before a result value."
+;;   :group 'geros
+;;   :type 'string
+;;   :package-version '(geros "0.1.0"))
 
 (defface geros-result-overlay-face
   '((((class color) (background light))
