@@ -1,11 +1,11 @@
-;;; eros.el --- Evaluation Result OverlayS for Emacs Lisp   -*- lexical-binding: t; -*-
+;;; geros.el --- Evaluation Result OverlayS for Geiser   -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2016-2018  Tianxiang Xiong
 
 ;; Author: Tianxiang Xiong <tianxiang.xiong@gmail.com>
 ;; Keywords: convenience, lisp
 ;; Package-Requires: ((emacs "24.4"))
-;; URL: https://github.com/xiongtx/eros
+;; URL: https://github.com/nitros12/geros
 ;; Version: 0.1.0
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; Evaluation result overlays for Emacs Lisp.
+;; Evaluation result overlays for Geiser.
 
 ;; The code is mostly taken from CIDER.  For more about CIDER, see:
 ;; https://github.com/clojure-emacs/cider
@@ -31,56 +31,56 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'geiser)
 
-
 ;; Customize
 
-(defgroup eros nil
-  "Evaluation Result OverlayS for Emacs Lisp"
-  :prefix "eros-"
+(defgroup geros nil
+  "Evaluation Result OverlayS for Geiser"
+  :prefix "geros-"
   :group 'lisp)
 
-(defcustom eros-eval-result-prefix "=> "
+(defcustom geros-eval-result-prefix "=> "
   "The prefix displayed in the minibuffer before a result value."
-  :group 'eros
+  :group 'geros
   :type 'string
-  :package-version '(eros "0.1.0"))
+  :package-version '(geros "0.1.0"))
 
-(defface eros-result-overlay-face
+(defface geros-result-overlay-face
   '((((class color) (background light))
      :background "grey90" :box (:line-width -1 :color "yellow"))
     (((class color) (background dark))
      :background "grey10" :box (:line-width -1 :color "black")))
   "Face used to display evaluation results at the end of line.
-If `eros-overlays-use-font-lock' is non-nil, this face is applied
+If `geros-overlays-use-font-lock' is non-nil, this face is applied
 with lower priority than the syntax highlighting."
-  :group 'eros
-  :package-version '(eros "0.1.0"))
+  :group 'geros
+  :package-version '(geros "0.1.0"))
 
-(defcustom eros-overlays-use-font-lock t
+(defcustom geros-overlays-use-font-lock t
   "If non-nil, results overlays are font-locked as Clojure code.
-If nil, apply `eros-result-overlay-face' to the entire overlay instead of
+If nil, apply `geros-result-overlay-face' to the entire overlay instead of
 font-locking it."
-  :group 'eros
+  :group 'geros
   :type 'boolean
-  :package-version '(eros "0.1.0"))
+  :package-version '(geros "0.1.0"))
 
-(defcustom eros-eval-result-duration 'command
+(defcustom geros-eval-result-duration 'command
   "Duration, in seconds, of eval-result overlays.
 
 If nil, overlays last indefinitely.
 
 If the symbol `command', they're erased before the next command."
-  :group 'eros
+  :group 'geros
   :type '(choice (integer :tag "Duration in seconds")
                  (const :tag "Until next command" command)
                  (const :tag "Last indefinitely" nil))
-  :package-version '(eros "0.1.0"))
+  :package-version '(geros "0.1.0"))
 
-
+
 ;; Overlay
 
-(defun eros--make-overlay (l r type &rest props)
+(defun geros--make-overlay (l r type &rest props)
   "Place an overlay between L and R and return it.
 
 TYPE is a symbol put on the overlay's category property.  It is
@@ -91,22 +91,22 @@ used to easily remove all overlays from a region with:
 PROPS is a plist of properties and values to add to the overlay."
   (let ((o (make-overlay l (or r l) (current-buffer))))
     (overlay-put o 'category type)
-    (overlay-put o 'eros-temporary t)
+    (overlay-put o 'geros-temporary t)
     (while props (overlay-put o (pop props) (pop props)))
-    (push #'eros--delete-overlay (overlay-get o 'modification-hooks))
+    (push #'geros--delete-overlay (overlay-get o 'modification-hooks))
     o))
 
-(defun eros--delete-overlay (ov &rest _)
+(defun geros--delete-overlay (ov &rest _)
   "Safely delete overlay OV.
 
 Never throws errors, and can be used in an overlay's
 modification-hooks."
   (ignore-errors (delete-overlay ov)))
 
-(cl-defun eros--make-result-overlay (value &rest props &key where duration (type 'result)
-                                           (format (concat " " eros-eval-result-prefix "%s "))
-                                           (prepend-face 'eros-result-overlay-face)
-                                           &allow-other-keys)
+(cl-defun geros--make-result-overlay (value &rest props &key where duration (type 'result)
+                                            (format " %s ")
+                                            (prepend-face 'geros-result-overlay-face)
+                                            &allow-other-keys)
   "Place an overlay displaying VALUE at the end of line.
 
 VALUE is used as the overlay's after-string property, meaning it
@@ -127,9 +127,9 @@ This function takes some optional keyword arguments:
   overlay.
 
 - DURATION takes the same possible values as the
-  `eros-eval-result-duration' variable.
+  `geros-eval-result-duration' variable.
 
-- TYPE is passed to `eros--make-overlay' (defaults to `result').
+- TYPE is passed to `geros--make-overlay' (defaults to `result').
 
 - FORMAT is a string passed to `format'.  It should have exactly
   one %s construct (for VALUE).
@@ -161,7 +161,7 @@ the overlay."
                (display-string (format format value))
                (o nil))
           (remove-overlays beg end 'category type)
-          (funcall (if eros-overlays-use-font-lock
+          (funcall (if geros-overlays-use-font-lock
                        #'font-lock-prepend-text-property
                      #'put-text-property)
                    0 (length display-string)
@@ -181,17 +181,17 @@ the overlay."
                   (concat (substring display-string 0 (* 3 (window-width)))
                           "...\nResult truncated.")))
           ;; Create the result overlay.
-          (setq o (apply #'eros--make-overlay
+          (setq o (apply #'geros--make-overlay
                          beg end type
                          'after-string display-string
                          props))
           (pcase duration
-            ((pred numberp) (run-at-time duration nil #'eros--delete-overlay o))
+            ((pred numberp) (run-at-time duration nil #'geros--delete-overlay o))
             (`command (if this-command
                           (add-hook 'pre-command-hook
-                                    #'eros--remove-result-overlay
+                                    #'geros--remove-result-overlay
                                     nil 'local)
-                        (eros--remove-result-overlay))))
+                        (geros--remove-result-overlay))))
           (let ((win (get-buffer-window buffer)))
             ;; Left edge is visible.
             (when (and win
@@ -205,53 +205,41 @@ the overlay."
                            (not truncate-lines)))
               o)))))))
 
-(defun eros--remove-result-overlay ()
+(defun geros--remove-result-overlay ()
   "Remove result overlay from current buffer.
 
 This function also removes itself from `pre-command-hook'."
-  (remove-hook 'pre-command-hook #'eros--remove-result-overlay 'local)
+  (remove-hook 'pre-command-hook #'geros--remove-result-overlay 'local)
   (remove-overlays nil nil 'category 'result))
 
-(defun eros--eval-overlay (value point)
+(defun geros--eval-overlay (value point)
   "Make overlay for VALUE at POINT."
-  (eros--make-result-overlay (format "%S" value)
+  (geros--make-result-overlay (format "%s" value)
     :where point
-    :duration eros-eval-result-duration)
+    :duration geros-eval-result-duration)
   value)
 
-
+
 ;; API
 
-(defun eros-eval-last-sexp (eval-last-sexp-arg-internal)
+(defun geros-eval-last-sexp (print-to-buffer-p)
   "Wrapper for `eval-last-sexp' that overlays results."
   (interactive "P")
-  (eros--eval-overlay
-   (eval-last-sexp eval-last-sexp-arg-internal)
+  (geros--eval-overlay
+   (geiser-eval-last-sexp print-to-buffer-p)
    (point)))
 
-(defun eros-eval-defun (edebug-it)
-  "Wrapper for `eval-defun' that overlays results."
-  (interactive "P")
-  (eros--eval-overlay
-   (eval-defun edebug-it)
-   (save-excursion
-     (end-of-defun)
-     (point))))
-
-
 ;; Minor mode
 
 ;;;###autoload
-(define-minor-mode eros-mode
-  "Display Emacs Lisp evaluation results overlays."
+(define-minor-mode geros-mode
+  "Display Geiser evaluation results overlays."
   :global t
-  (if eros-mode
+  (if geros-mode
       (progn
-        (global-set-key [remap eval-last-sexp] #'eros-eval-last-sexp)
-        (global-set-key [remap eval-defun] #'eros-eval-defun))
-    (global-set-key [remap eval-last-sexp] nil)
-    (global-set-key [remap eval-defun] nil)))
+        (global-set-key [remap geiser-eval-last-sexp] #'geros-eval-last-sexp))
+    (global-set-key [remap geiser-eval-last-sexp] nil)))
 
-
-(provide 'eros)
-;;; eros.el ends here
+
+(provide 'geros)
+;;; geros.el ends here
